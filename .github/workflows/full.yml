@@ -7,8 +7,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - run: bash data_restore/fetch.sh data
-      - run: python3 experiments/run_e2.py --data data --out results_e2.csv
+      - run: bash repro/data_restore/fetch.sh data
+      - run: python3 repro/experiments/run_e2.py --data data --out results_e2.csv
       - uses: actions/upload-artifact@v4
         with:
           name: e2-results
@@ -18,8 +18,8 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - run: bash data_restore/fetch.sh data
-      - run: python3 experiments/run_e3.py --data data --out results_e3.csv
+      - run: bash repro/data_restore/fetch.sh data
+      - run: python3 repro/experiments/run_e3.py --data data --out results_e3.csv
       - uses: actions/upload-artifact@v4
         with:
           name: e3-results
@@ -29,9 +29,9 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-      - run: bash data_restore/fetch.sh data
-      - run: python3 experiments/run_e14.py --mode e1 --data data --out results_e1.csv
-      - run: python3 experiments/run_e14.py --mode e4 --data data --out results_e4.csv
+      - run: bash repro/data_restore/fetch.sh data
+      - run: python3 repro/experiments/run_e14.py --mode e1 --data data --out results_e1.csv
+      - run: python3 repro/experiments/run_e14.py --mode e4 --data data --out results_e4.csv
       - uses: actions/upload-artifact@v4
         with:
           name: e14-results

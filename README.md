@@ -12,29 +12,50 @@ CASPER-style point-forecast routing. All SLOs (p95 TTFT, p99 TPOT) hold.
 
 - Author: Ravani Roshan (Independent Research) · ORCID
   [0009-0007-4930-977X](https://orcid.org/0009-0007-4930-977X)
-- Paper: [`paper/CarbonServe.pdf`](paper/CarbonServe.pdf) (venue target: IEEE IC2E 2027)
+- Paper: [`paper/CarbonServe.pdf`](paper/CarbonServe.pdf) (source:
+  `paper/CarbonServe-Paper.typ` + `paper/figures/`) · venue target: IEEE IC2E 2027
 - Data: Azure LLM Inference Trace 2024 (CC-BY) · EnsembleCI grid carbon datasets (EIA/ENTSO-E)
+
+## Layout
+
+- `simulator/` — the original experiment code: fluid simulator, 67-run batch driver
+  (E1–E4), analysis + figure generation, data-restore script. Paths are
+  env-overridable (`CARBONSERVE_DATA`, `CARBONSERVE_OUT`, `CARBONSERVE_FIG`);
+  defaults preserve the original `/scratch/work` layout.
+- `paper/` — paper source, original figures, compiled PDF.
+- `documents/` — results pack and research dossier.
+- `repro/` — an independent stdlib-only reimplementation built from the paper spec
+  (separate validation track; see `repro/` notes). Its numbers are its own —
+  qualitative agreement is the claim, not bit-identity.
+- `submission/` — arXiv metadata pack + IEEE Access checklist.
 
 ## Status
 
-Working simulator is in (`sim/` + `experiments/` + `analysis/`): an **independent
-reimplementation from the paper's specification**, run against the real public
-data (Azure traces, EnsembleCI grids). Every number it reports comes from
-actually running the code — headline comparison, noise/fleet/headroom sweeps,
-and physics-consistency checks. It reproduces the paper's qualitative findings
-(confidence-rule risk gap, graceful degradation); exact quantitative match with
-the authors' original runs is not claimed.
-Status: smoke-tested (unit tests 6/6, real-data slice end-to-end, MAPE 10.09%
-vs paper's 10.1%); full-week runs execute in CI (`full-week` workflow).
+Two runnable tracks, both executed in CI:
 
-## Reproduce (once artifacts land)
+1. **Original pipeline** (`simulator/` + `original-pipeline` workflow): restores public
+   data, runs the 67 experiment jobs sharded across runners, aggregates tables +
+   figures. Smoke mode runs 1 job; full mode runs all 67.
+2. **Independent reproduction** (`repro/` + `smoke`/`full-week` workflows): stdlib-only
+   reimplementation from the paper spec. Unit tests 6/6, real-data slice end-to-end,
+   persistence MAPE 10.09% vs the paper's 10.1%.
+
+## Reproduce
 
 ```bash
-bash data_restore/fetch.sh data   # EnsembleCI grids; Azure traces fetch on first run
-python3 -m pytest tests/ -q
-python3 experiments/run_e2.py --data data --out results_e2.csv   # full week, both traces
-python3 analysis/tables.py results_e2_conv.csv local
-python3 analysis/verify.py results_e2_conv.csv
+# original pipeline, one job (needs numpy/pandas; ~GBs of public data)
+export CARBONSERVE_DATA=$PWD/data CARBONSERVE_OUT=$PWD/work
+bash simulator/restore_data.sh
+python3 simulator/run_one_job.py e2_conv_carbonserve_s42
+# full 67-job sweep: Actions → original-pipeline → Run workflow (mode: full)
+```
+
+```bash
+# independent reproduction track
+bash repro/data_restore/fetch.sh data
+python3 -m pytest repro/tests/ -q
+python3 repro/experiments/run_e2.py --data data --out results_e2.csv
+python3 repro/analysis/tables.py results_e2_conv.csv local
 ```
 
 > [!NOTE]

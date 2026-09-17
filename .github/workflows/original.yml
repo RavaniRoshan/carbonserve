@@ -1,0 +1,79 @@
+name: original-pipeline
+on:
+  push:
+    paths: ["simulator/**", ".github/workflows/original.yml"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "smoke (1 job) or full (all 67 jobs, sharded)"
+        default: "smoke"
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.mk.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: mk
+        run: |
+          python3 -c "
+          import sys, json; sys.path.insert(0, 'simulator')
+          import run_one_job
+          ids = [j['id'] for j in run_one_job.build_jobs()]
+          mode = '${{ inputs.mode }}'
+          sel = ['e2_conv_carbonserve_s42'] if mode != 'full' else ids
+          shards, n = [], 8
+          for i in range(n):
+              shards.append([x for k, x in enumerate(sel) if k % n == i])
+          shards = [s for s in shards if s]
+          print('jobs:', len(sel), 'shards:', len(shards))
+          open('$GITHUB_OUTPUT', 'a').write('matrix=' + json.dumps(shards) + '\n')
+          "
+  run:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJson(needs.setup.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -q numpy pandas matplotlib
+      - run: bash simulator/restore_data.sh
+        env:
+          CARBONSERVE_DATA: ${{ github.workspace }}/data
+          CARBONSERVE_OUT: ${{ github.workspace }}/work
+      - run: |
+          for j in ${{ join(matrix.shard, ' ') }}; do
+            python3 simulator/run_one_job.py "$j"
+          done
+        env:
+          CARBONSERVE_DATA: ${{ github.workspace }}/data
+          CARBONSERVE_OUT: ${{ github.workspace }}/work
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runs-${{ strategy.job-index }}
+          path: work/runs_v2/*.json
+  aggregate:
+    if: inputs.mode == 'full'
+    needs: run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -q numpy pandas matplotlib
+      - uses: actions/download-artifact@v4
+        with:
+          path: runs
+          merge-multiple: true
+      - run: |
+          mkdir -p work/runs_v2 figs
+          cp runs/*.json work/runs_v2/
+          CARBONSERVE_OUT=$GITHUB_WORKSPACE/work CARBONSERVE_FIG=$GITHUB_WORKSPACE/figs \
+            python3 simulator/analyze_results.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tables-figs
+          path: |
+            work/table_*.csv
+            figs/*.png
