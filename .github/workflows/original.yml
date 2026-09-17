@@ -14,6 +14,7 @@ jobs:
       matrix: ${{ steps.mk.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+      - run: pip install -q numpy
       - id: mk
         run: |
           python3 -c "
