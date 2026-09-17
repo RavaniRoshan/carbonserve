@@ -9,6 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: pip install -q pytest
       - run: python3 -m pytest tests/ -q
       - run: bash data_restore/fetch.sh data
       - run: python3 experiments/run_e2.py --data data --traces conv
