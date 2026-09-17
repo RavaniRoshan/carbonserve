@@ -17,15 +17,24 @@ CASPER-style point-forecast routing. All SLOs (p95 TTFT, p99 TPOT) hold.
 
 ## Status
 
-Paper draft is in. The full artifact drop — simulator, experiment drivers, data-restore
-scripts, 67 per-run result files, analysis scripts — lands here before submission,
-with a verified reproduce path and a Zenodo snapshot (DOI).
+Working simulator is in (`sim/` + `experiments/` + `analysis/`): an **independent
+reimplementation from the paper's specification**, run against the real public
+data (Azure traces, EnsembleCI grids). Every number it reports comes from
+actually running the code — headline comparison, noise/fleet/headroom sweeps,
+and physics-consistency checks. It reproduces the paper's qualitative findings
+(confidence-rule risk gap, graceful degradation); exact quantitative match with
+the authors' original runs is not claimed.
+Status: smoke-tested (unit tests 6/6, real-data slice end-to-end, MAPE 10.09%
+vs paper's 10.1%); full-week runs execute in CI (`full-week` workflow).
 
 ## Reproduce (once artifacts land)
 
 ```bash
+bash data_restore/fetch.sh data   # EnsembleCI grids; Azure traces fetch on first run
 python3 -m pytest tests/ -q
-python3 experiments/run_e2.py   # policy comparison, conversational + coding traces
+python3 experiments/run_e2.py --data data --out results_e2.csv   # full week, both traces
+python3 analysis/tables.py results_e2_conv.csv local
+python3 analysis/verify.py results_e2_conv.csv
 ```
 
 > [!NOTE]

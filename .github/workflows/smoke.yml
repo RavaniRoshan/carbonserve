@@ -1,0 +1,17 @@
+name: smoke
+on:
+  push:
+    paths: ["sim/**", "experiments/**", "tests/**", "analysis/**",
+            ".github/workflows/smoke.yml"]
+  workflow_dispatch: {}
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pytest tests/ -q
+      - run: bash data_restore/fetch.sh data
+      - run: python3 experiments/run_e2.py --data data --traces conv
+          --seeds 0 --days 6 --max-rows 300000 --out /tmp/smoke_e2.csv
+      - run: python3 analysis/tables.py /tmp/smoke_e2.csv local
+      - run: python3 analysis/verify.py /tmp/smoke_e2.csv
