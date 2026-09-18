@@ -16,6 +16,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: pip install -q numpy pandas matplotlib
       - id: mk
+        env:
+          CARBONSERVE_DATA: ${{ github.workspace }}/data
+          CARBONSERVE_OUT: ${{ github.workspace }}/work
         run: |
           python3 -c "
           import sys, json; sys.path.insert(0, 'simulator')
