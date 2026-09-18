@@ -41,6 +41,7 @@ def main():
                     regions=job["k_regions"] or cs.ZONES)
     r.update(job)
     out = f"{cs.OUT}/runs_v2/{job['id']}.json"
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     json.dump(r, open(out, "w"), indent=1, default=str)
     print(f"OK {job['id']}: carbon={r['carbon_kg']:.1f}kg "
           f"misroute={r.get('misroute_rate', 0)*100:.1f}% penalty={r.get('misroute_penalty_kg', 0):.2f}kg")
